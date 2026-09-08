@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Farm Management – Admin Portal</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --dark:    #0f1f2e;
+      --darker:  #0a1520;
+      --accent:  #e8a020;
+      --accent2: #c47d10;
+      --white:   #ffffff;
+      --g400:    #a1a1aa;
+      --g500:    #71717a;
+      --red:     #dc2626;
+      --radius:  10px;
+      --shadow:  0 8px 40px rgba(0,0,0,.5);
+    }
+
+    /* ── background ──────────────────────────────── */
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--darker);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .orb { position: fixed; border-radius: 50%; filter: blur(80px); opacity: .18; animation: drift 12s ease-in-out infinite alternate; pointer-events: none; }
+    .orb1 { width: 420px; height: 420px; background: var(--accent);  top: -120px; left: -100px; animation-delay: 0s; }
+    .orb2 { width: 320px; height: 320px; background: #2d7a4f;        bottom: -80px; right: -80px; animation-delay: -4s; }
+    .orb3 { width: 260px; height: 260px; background: var(--accent2); bottom: 20%; left: 20%;   animation-delay: -8s; }
+    @keyframes drift { 0% { transform: translate(0,0) scale(1); } 100% { transform: translate(40px,30px) scale(1.08); } }
+
+    body::before {
+      content: ''; position: fixed; inset: 0;
+      background-image: linear-gradient(rgba(255,255,255,.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.03) 1px, transparent 1px);
+      background-size: 48px 48px; pointer-events: none;
+    }
+
+    /* ── card ────────────────────────────────────── */
+    .card {
+      background: rgba(255,255,255,.05);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      width: 100%; max-width: 440px;
+      padding: 2.4rem 2rem 2rem;
+      position: relative; z-index: 10;
+      animation: slideUp .5s cubic-bezier(.22,1,.36,1) both;
+    }
+    @keyframes slideUp { from { opacity:0; transform:translateY(32px); } to { opacity:1; transform:translateY(0); } }
+
+    /* ── logo ────────────────────────────────────── */
+    .logo { text-align: center; margin-bottom: 1.6rem; }
+    .logo .badge {
+      display: inline-flex; align-items: center; gap: .4rem;
+      background: rgba(232,160,32,.15); border: 1px solid rgba(232,160,32,.35);
+      color: var(--accent); font-size: .72rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .1em;
+      padding: .28rem .75rem; border-radius: 99px; margin-bottom: .85rem;
+    }
+    .lock-pulse { display: inline-block; animation: pulse 2s ease-in-out infinite; }
+    @keyframes pulse { 0%,100% { transform:scale(1); opacity:1; } 50% { transform:scale(1.15); opacity:.7; } }
+    .logo .icon { font-size: 2.6rem; display: block; margin-bottom: .3rem; }
+    .logo h1 { font-size: 1.35rem; font-weight: 700; color: var(--white); }
+    .logo p  { font-size: .82rem; color: var(--g500); margin-top: .2rem; }
+
+    /* ── tabs ────────────────────────────────────── */
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid rgba(255,255,255,.1);
+      margin-bottom: 1.5rem;
+    }
+    .tab {
+      flex: 1; padding: .55rem; text-align: center;
+      font-size: .88rem; font-weight: 600; cursor: pointer;
+      color: var(--g500);
+      border-bottom: 2px solid transparent; margin-bottom: -1px;
+      transition: color .15s, border-color .15s;
+    }
+    .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    .panel { display: none; }
+    .panel.active { display: block; animation: fadeSlide .22s ease both; }
+    @keyframes fadeSlide { from { opacity:0; transform:translateY(7px); } to { opacity:1; transform:translateY(0); } }
+
+    /* ── form ────────────────────────────────────── */
+    .fg { margin-bottom: .9rem; }
+    .fg label {
+      display: block; font-size: .76rem; font-weight: 700;
+      color: var(--g400); text-transform: uppercase; letter-spacing: .06em; margin-bottom: .32rem;
+    }
+    .fg input, .fg select {
+      width: 100%; padding: .68rem .9rem;
+      background: rgba(255,255,255,.07);
+      border: 1.5px solid rgba(255,255,255,.12);
+      border-radius: var(--radius);
+      font-size: .93rem; color: var(--white); outline: none;
+      transition: border-color .15s, box-shadow .15s, background .15s;
+    }
+    .fg input::placeholder { color: rgba(255,255,255,.22); }
+    .fg input:focus, .fg select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(232,160,32,.18);
+      background: rgba(255,255,255,.1);
+    }
+    .fg select option { background: var(--dark); }
+
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+
+    /* ── buttons ─────────────────────────────────── */
+    .btn {
+      width: 100%; padding: .72rem;
+      background: var(--accent); color: var(--darker);
+      border: none; border-radius: var(--radius);
+      font-size: .98rem; font-weight: 800; cursor: pointer;
+      margin-top: .4rem; letter-spacing: .02em;
+      transition: background .15s, transform .1s, opacity .15s;
+    }
+    .btn:hover:not(:disabled) { background: var(--accent2); transform: translateY(-1px); }
+    .btn:active { transform: translateY(0); }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+
+    /* ── alerts ──────────────────────────────────── */
+    .alert { padding: .62rem .9rem; border-radius: var(--radius); font-size: .875rem; margin-bottom: 1rem; display: none; }
+    .alert.show { display: block; animation: fadeSlide .2s ease both; }
+    .alert-error   { background: rgba(220,38,38,.2);  color: #fca5a5; border: 1px solid rgba(220,38,38,.4); }
+    .alert-success { background: rgba(76,175,128,.2); color: #86efac; border: 1px solid rgba(76,175,128,.4); }
+
+    /* ── back link ───────────────────────────────── */
+    .back-link { text-align: center; margin-top: 1.2rem; }
+    .back-link a { color: var(--g500); font-size: .8rem; text-decoration: none; transition: color .12s; }
+    .back-link a:hover { color: var(--white); }
+  </style>
+</head>
+<body>
+
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+<div class="orb orb3"></div>
+
+<div class="card">
+  <div class="logo">
+    <div class="badge"><span class="lock-pulse">🔒</span> Admin Access</div>
+    <span class="icon">🌾</span>
+    <h1>Admin Portal</h1>
+    <p>Restricted — authorised personnel only</p>
+  </div>
+
+  <!-- tabs -->
+  <div class="tabs">
+    <div class="tab active" onclick="showTab('login')">Sign In</div>
+    <div class="tab"        onclick="showTab('register')">Register Admin</div>
+  </div>
+
+  <!-- ── LOGIN PANEL ── -->
+  <div class="panel active" id="panel-login">
+    <div class="alert alert-error"   id="login-error"></div>
+    <div class="alert alert-success" id="login-success"></div>
+
+    <form onsubmit="doLogin(event)">
+      <div class="fg">
+        <label for="l-email">Admin Email</label>
+        <input id="l-email" type="email" placeholder="admin@farm.com" required autofocus />
+      </div>
+      <div class="fg">
+        <label for="l-pass">Password</label>
+        <input id="l-pass" type="password" placeholder="••••••••" required />
+      </div>
+      <button class="btn" id="login-btn" type="submit">Access Admin Panel</button>
+    </form>
+  </div>
+
+  <!-- ── REGISTER PANEL ── -->
+  <div class="panel" id="panel-register">
+    <div class="alert alert-error"   id="reg-error"></div>
+    <div class="alert alert-success" id="reg-success"></div>
+
+    <form onsubmit="doRegister(event)">
+      <div class="row2">
+        <div class="fg">
+          <label for="r-name">Full Name</label>
+          <input id="r-name" type="text" placeholder="Jane Admin" required />
+        </div>
+        <div class="fg">
+          <label for="r-email">Email</label>
+          <input id="r-email" type="email" placeholder="admin@farm.com" required />
+        </div>
+      </div>
+      <div class="row2">
+        <div class="fg">
+          <label for="r-pass">Password</label>
+          <input id="r-pass" type="password" placeholder="Min 8 chars" minlength="8" required />
+        </div>
+        <div class="fg">
+          <label for="r-dept">Department</label>
+          <select id="r-dept">
+            <option value="Administration">Administration</option>
+            <option value="Owner">Owner</option>
+            <option value="Manager">Manager</option>
+          </select>
+        </div>
+      </div>
+      <!-- role is always Admin for this portal -->
+      <button class="btn" id="reg-btn" type="submit">Create Admin Account</button>
+    </form>
+  </div>
+
+  <div class="back-link">
+    <a href="login.html">← Back to user login</a>
+  </div>
+</div>
+
+<script>
+  const API = 'http://localhost:5226/api';
+
+  /* redirect if already logged in as admin */
+  if (localStorage.getItem('farm_token') && localStorage.getItem('farm_role') === 'Admin') {
+    window.location.href = 'admin-dashboard.html';
+  }
+
+  /* ── tab switching ───────────────────────────── */
+  function showTab(name) {
+    document.querySelectorAll('.tab').forEach((t, i) =>
+      t.classList.toggle('active', (i === 0 && name === 'login') || (i === 1 && name === 'register'))
+    );
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('panel-' + name).classList.add('active');
+  }
+
+  function showMsg(id, msg, type) {
+    const el = document.getElementById(id);
+    el.textContent = msg;
+    el.className = 'alert alert-' + type + ' show';
+  }
+  function hideMsg(id) { document.getElementById(id).classList.remove('show'); }
+
+  /* ── LOGIN ───────────────────────────────────── */
+  async function doLogin(e) {
+    e.preventDefault();
+    hideMsg('login-error'); hideMsg('login-success');
+    const btn = document.getElementById('login-btn');
+    btn.disabled = true; btn.textContent = 'Authenticating…';
+
+    try {
+      const res  = await fetch(`${API}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email:    document.getElementById('l-email').value,
+          password: document.getElementById('l-pass').value
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Login failed');
+      if (data.role !== 'Admin') throw new Error('Access denied — this account does not have Admin privileges.');
+
+      localStorage.setItem('farm_token', data.token);
+      localStorage.setItem('farm_email', data.email);
+      localStorage.setItem('farm_role',  data.role);
+
+      showMsg('login-success', 'Access granted. Entering admin panel…', 'success');
+      setTimeout(() => window.location.href = 'admin-dashboard.html', 1000);
+    } catch (err) {
+      showMsg('login-error', err.message, 'error');
+    } finally {
+      btn.disabled = false; btn.textContent = 'Access Admin Panel';
+    }
+  }
+
+  /* ── REGISTER ────────────────────────────────── */
+  async function doRegister(e) {
+    e.preventDefault();
+    hideMsg('reg-error'); hideMsg('reg-success');
+    const btn = document.getElementById('reg-btn');
+    btn.disabled = true; btn.textContent = 'Creating account…';
+
+    try {
+      const res  = await fetch(`${API}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fullName:   document.getElementById('r-name').value.trim(),
+          email:      document.getElementById('r-email').value.trim(),
+          password:   document.getElementById('r-pass').value,
+          role:       'Admin',
+          department: document.getElementById('r-dept').value
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Registration failed');
+
+      showMsg('reg-success', 'Admin account created! Redirecting to sign in…', 'success');
+      document.querySelector('#panel-register form').reset();
+
+      /* after 1.8 s go to login tab */
+      setTimeout(() => {
+        hideMsg('reg-success');
+        showTab('login');
+      }, 1800);
+    } catch (err) {
+      showMsg('reg-error', err.message, 'error');
+    } finally {
+      btn.disabled = false; btn.textContent = 'Create Admin Account';
+    }
+  }
+</script>
+</body>
+</html>

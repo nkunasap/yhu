@@ -1,0 +1,1393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Farm Management – Dashboard</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green-dark: #1a4d2e;
+      --green:      #2d7a4f;
+      --green-lt:   #4caf80;
+      --green-bg:   #e8f5ee;
+      --cream:      #f5f0e8;
+      --white:      #ffffff;
+      --g100:       #f4f4f5;
+      --g200:       #e4e4e7;
+      --g400:       #a1a1aa;
+      --g600:       #52525b;
+      --g800:       #27272a;
+      --red:        #dc2626;
+      --red-bg:     #fee2e2;
+      --yellow:     #d97706;
+      --yellow-bg:  #fef3c7;
+      --blue:       #2563eb;
+      --blue-bg:    #dbeafe;
+      --radius:     8px;
+      --shadow:     0 1px 4px rgba(0,0,0,.1);
+      --shadow-md:  0 4px 16px rgba(0,0,0,.12);
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--cream);
+      color: var(--g800);
+      line-height: 1.5;
+    }
+
+    /* ── SIDEBAR ─────────────────────────── */
+    .sidebar {
+      position: fixed; top: 0; left: 0;
+      width: 230px; height: 100vh;
+      background: var(--green-dark);
+      color: #fff;
+      display: flex; flex-direction: column;
+      z-index: 100;
+    }
+    .sb-brand { padding: 1.4rem 1.2rem 1.1rem; border-bottom: 1px solid rgba(255,255,255,.1); }
+    .sb-brand h2 { font-size: 1.05rem; font-weight: 700; }
+    .sb-brand p  { font-size: .75rem; opacity: .65; margin-top: .15rem; }
+
+    .sb-nav { flex: 1; padding: 1rem 0; overflow-y: auto; }
+
+    .nav-item {
+      display: flex; align-items: center; gap: .75rem;
+      padding: .6rem 1.2rem; cursor: pointer;
+      font-size: .875rem; border-left: 3px solid transparent;
+      transition: background .12s; user-select: none;
+    }
+    .nav-item:hover  { background: rgba(255,255,255,.07); }
+    .nav-item.active { background: rgba(255,255,255,.13); border-left-color: var(--green-lt); font-weight: 600; }
+    .nav-item .ni-icon { font-size: 1.1rem; width: 22px; text-align: center; }
+
+    .sb-footer { padding: 1rem 1.2rem; border-top: 1px solid rgba(255,255,255,.1); }
+    .user-row  { display: flex; align-items: center; gap: .7rem; margin-bottom: .8rem; }
+    .avatar {
+      width: 34px; height: 34px; border-radius: 50%;
+      background: var(--green-lt); color: var(--green-dark);
+      font-weight: 800; font-size: .85rem;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .user-info p    { font-size: .82rem; font-weight: 600; word-break: break-all; }
+    .user-info span { font-size: .72rem; opacity: .65; }
+    .btn-logout {
+      width: 100%; background: rgba(255,255,255,.12); color: #fff;
+      border: none; padding: .45rem; border-radius: var(--radius);
+      font-size: .82rem; cursor: pointer; transition: background .12s;
+    }
+    .btn-logout:hover { background: rgba(255,255,255,.2); }
+
+    /* ── MAIN ────────────────────────────── */
+    .main { margin-left: 230px; padding: 2rem; min-height: 100vh; }
+
+    .page-header { margin-bottom: 1.6rem; }
+    .page-header h1 { font-size: 1.55rem; font-weight: 700; color: var(--green-dark); }
+    .page-header p  { font-size: .875rem; color: var(--g600); margin-top: .2rem; }
+
+    .section { display: none; }
+    .section.active { display: block; }
+
+    /* ── STAT CARDS ──────────────────────── */
+    .stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1.1rem; margin-bottom: 1.8rem; }
+    .stat-card {
+      background: var(--white); border-radius: var(--radius);
+      padding: 1.1rem 1.2rem; box-shadow: var(--shadow);
+      display: flex; align-items: center; gap: .9rem;
+    }
+    .stat-icon {
+      font-size: 1.8rem; width: 48px; height: 48px;
+      border-radius: var(--radius); background: var(--green-bg);
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .stat-info p  { font-size: .75rem; color: var(--g600); font-weight: 500; }
+    .stat-info h3 { font-size: 1.6rem; font-weight: 800; color: var(--green-dark); line-height: 1.1; }
+
+    /* ── CARD / TABLE ────────────────────── */
+    .card { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 1.4rem; overflow: hidden; }
+    .card-head {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1rem 1.2rem; border-bottom: 1px solid var(--g200);
+    }
+    .card-head h2 { font-size: 1rem; font-weight: 700; color: var(--green-dark); }
+    .btn-add {
+      background: var(--green); color: #fff; border: none;
+      padding: .45rem .9rem; border-radius: var(--radius);
+      font-size: .82rem; font-weight: 600; cursor: pointer; transition: background .12s;
+    }
+    .btn-add:hover { background: var(--green-dark); }
+
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: .875rem; }
+    thead th {
+      background: var(--g100); padding: .65rem 1rem; text-align: left;
+      font-size: .75rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .05em; color: var(--g600); white-space: nowrap;
+    }
+    tbody td { padding: .7rem 1rem; border-bottom: 1px solid var(--g200); color: var(--g800); vertical-align: middle; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: var(--g100); }
+    .empty-row td   { text-align: center; padding: 2rem; color: var(--g400); font-style: italic; }
+    .loading-row td { text-align: center; padding: 1.5rem; }
+
+    /* ── BADGES ──────────────────────────── */
+    .badge { display: inline-block; padding: .2rem .55rem; border-radius: 99px; font-size: .72rem; font-weight: 700; text-transform: uppercase; }
+    .badge-green  { background: var(--green-bg);  color: var(--green-dark); }
+    .badge-yellow { background: var(--yellow-bg); color: var(--yellow); }
+    .badge-red    { background: var(--red-bg);    color: var(--red); }
+    .badge-blue   { background: var(--blue-bg);   color: var(--blue); }
+    .badge-gray   { background: var(--g200);      color: var(--g600); }
+
+    /* ── ROW ACTIONS ─────────────────────── */
+    .btn-icon {
+      background: none; border: 1px solid var(--g200);
+      border-radius: 6px; padding: .25rem .5rem;
+      cursor: pointer; font-size: .8rem; transition: background .1s; margin-left: .25rem;
+    }
+    .btn-icon:hover     { background: var(--g100); }
+    .btn-icon.del:hover { background: var(--red-bg); border-color: #fca5a5; }
+
+    /* ── MODAL ───────────────────────────── */
+    .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 200; align-items: center; justify-content: center; }
+    .overlay.open { display: flex; }
+    .modal {
+      background: var(--white); border-radius: var(--radius);
+      box-shadow: var(--shadow-md); width: 100%; max-width: 440px;
+      padding: 1.8rem; position: relative;
+    }
+    .modal h3 { font-size: 1.05rem; font-weight: 700; color: var(--green-dark); margin-bottom: 1.2rem; }
+    .modal-close { position: absolute; top: 1rem; right: 1rem; background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--g400); }
+    .modal-close:hover { color: var(--g800); }
+
+    .fg { margin-bottom: .9rem; }
+    .fg label { display: block; font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--g600); margin-bottom: .3rem; }
+    .fg input, .fg select {
+      width: 100%; padding: .6rem .8rem; border: 1.5px solid var(--g200);
+      border-radius: var(--radius); font-size: .9rem; background: var(--g100); outline: none;
+    }
+    .fg input:focus, .fg select:focus { border-color: var(--green); background: var(--white); box-shadow: 0 0 0 3px rgba(45,122,79,.12); }
+
+    .modal-actions { display: flex; gap: .6rem; justify-content: flex-end; margin-top: 1.2rem; }
+    .btn-save   { background: var(--green); color: #fff; border: none; padding: .55rem 1.2rem; border-radius: var(--radius); font-weight: 700; font-size: .9rem; cursor: pointer; }
+    .btn-save:hover { background: var(--green-dark); }
+    .btn-cancel { background: var(--g100); color: var(--g600); border: 1px solid var(--g200); padding: .55rem 1.2rem; border-radius: var(--radius); font-size: .9rem; cursor: pointer; }
+    .btn-cancel:hover { background: var(--g200); }
+
+    /* ── TOAST ───────────────────────────── */
+    #toast {
+      position: fixed; bottom: 1.5rem; right: 1.5rem;
+      background: var(--green-dark); color: #fff;
+      padding: .7rem 1.2rem; border-radius: var(--radius);
+      font-size: .875rem; font-weight: 600; box-shadow: var(--shadow-md);
+      transform: translateY(120%); transition: transform .25s; z-index: 300;
+    }
+    #toast.show { transform: translateY(0); }
+    #toast.err  { background: var(--red); }
+
+    /* ── SPINNER ─────────────────────────── */
+    .spinner { display: inline-block; width: 18px; height: 18px; border: 3px solid var(--g200); border-top-color: var(--green); border-radius: 50%; animation: spin .6s linear infinite; vertical-align: middle; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── RESPONSIVE ──────────────────────── */
+    @media (max-width: 700px) { .sidebar { width: 200px; } .main { margin-left: 200px; padding: 1rem; } }
+    @media (max-width: 520px) {
+      .sidebar { position: static; width: 100%; height: auto; }
+      .sb-nav  { display: flex; flex-direction: row; overflow-x: auto; padding: .4rem 0; }
+      .nav-item { border-left: none; border-bottom: 3px solid transparent; padding: .5rem .8rem; }
+      .nav-item.active { border-bottom-color: var(--green-lt); }
+      .main { margin-left: 0; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════ SIDEBAR ══════════════ -->
+<aside class="sidebar">
+  <div class="sb-brand">
+    <h2>🌾 Farm Manager</h2>
+    <p>Management System</p>
+  </div>
+
+  <nav class="sb-nav">
+    <div class="nav-item active" onclick="navigate('overview')">
+      <span class="ni-icon">🏠</span> Overview
+    </div>
+    <div class="nav-item" onclick="navigate('farm')">
+      <span class="ni-icon">🏡</span> My Farm
+    </div>
+    <div class="nav-item" onclick="navigate('crops')">
+      <span class="ni-icon">🌽</span> Crops
+    </div>
+    <div class="nav-item" onclick="navigate('inventory')">
+      <span class="ni-icon">📦</span> Inventory
+    </div>
+    <div class="nav-item" onclick="navigate('tasks')">
+      <span class="ni-icon">✅</span> Tasks
+    </div>
+    <div class="nav-item" onclick="navigate('greenhouse')">
+      <span class="ni-icon">🏗️</span> Greenhouse
+    </div>
+    <div class="nav-item" onclick="navigate('growingzones')">
+      <span class="ni-icon">🌿</span> Growing Zones
+    </div>
+  </nav>
+
+  <div class="sb-footer">
+    <div class="user-row">
+      <div class="avatar" id="user-avatar">?</div>
+      <div class="user-info">
+        <p id="user-email">—</p>
+        <span id="user-role">—</span>
+      </div>
+    </div>
+    <button class="btn-logout" onclick="logout()">Sign out</button>
+  </div>
+</aside>
+
+<!-- ══════════════ MAIN ══════════════════ -->
+<main class="main">
+
+  <!-- OVERVIEW -->
+  <div class="section active" id="section-overview">
+    <div class="page-header">
+      <h1 id="greeting">Good day 👋</h1>
+      <p>Here's a snapshot of your farm today.</p>
+    </div>
+
+    <div class="stats">
+      <div class="stat-card">
+        <div class="stat-icon">🌽</div>
+        <div class="stat-info"><p>Crops</p>           <h3 id="count-crops">—</h3></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">📦</div>
+        <div class="stat-info"><p>Inventory Items</p> <h3 id="count-inventory">—</h3></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">✅</div>
+        <div class="stat-info"><p>Open Tasks</p>      <h3 id="count-tasks">—</h3></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h2>Recent Tasks</h2>
+        <button class="btn-add" onclick="navigate('tasks')">View all</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Title</th><th>Status</th><th>Due Date</th></tr></thead>
+          <tbody id="overview-tasks-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h2>Inventory Summary</h2>
+        <button class="btn-add" onclick="navigate('inventory')">View all</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Item</th><th>Category</th><th>Quantity</th><th>Unit</th></tr></thead>
+          <tbody id="overview-inv-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- FARM -->
+  <div class="section" id="section-farm">
+    <div class="page-header">
+      <h1>🏡 My Farm</h1>
+      <p>Set up and manage your farm details.</p>
+    </div>
+
+    <!-- Step wizard progress bar -->
+    <div id="farm-wizard">
+      <!-- shown when no farm exists yet -->
+      <div id="farm-create-wizard" style="display:none">
+        <div class="card" style="max-width:600px;margin:0 auto">
+
+          <!-- progress indicator -->
+          <div style="padding:1.2rem 1.5rem 0">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+              <span style="font-size:.8rem;font-weight:700;color:var(--g600)">STEP 1 OF 6 — CREATE YOUR FARM</span>
+              <span style="font-size:.8rem;color:var(--g400)">WF-003</span>
+            </div>
+            <div style="height:4px;background:var(--g200);border-radius:99px;overflow:hidden">
+              <div style="width:16.7%;height:100%;background:var(--green);border-radius:99px;transition:width .3s"></div>
+            </div>
+          </div>
+
+          <div style="padding:1.5rem">
+            <div class="fg">
+              <label for="wf-name">Farm Name</label>
+              <input id="wf-name" type="text" placeholder="e.g. Green Valley Farm" />
+            </div>
+
+            <div class="fg">
+              <label for="wf-type">Farm Type</label>
+              <select id="wf-type">
+                <option value="">Select farm type…</option>
+                <option>Hydroponic</option>
+                <option>Organic</option>
+                <option>Conventional</option>
+                <option>Mixed</option>
+                <option>Aquaponic</option>
+                <option>Greenhouse</option>
+                <option>Dairy</option>
+                <option>Poultry</option>
+                <option>Arable</option>
+              </select>
+            </div>
+
+            <div class="fg">
+              <label for="wf-address">Location / Address</label>
+              <input id="wf-address" type="text" placeholder="Search location or enter address…" />
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 120px;gap:.75rem">
+              <div class="fg">
+                <label for="wf-area">Area / Size</label>
+                <input id="wf-area" type="number" min="0" step="0.01" placeholder="0.00" />
+              </div>
+              <div class="fg">
+                <label for="wf-unit">Unit</label>
+                <select id="wf-unit">
+                  <option value="m²">m²</option>
+                  <option value="ha">ha</option>
+                  <option value="acres">acres</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="fg">
+              <label for="wf-crop">Primary Crop</label>
+              <select id="wf-crop">
+                <option value="">Select primary crop…</option>
+                <option>Maize</option>
+                <option>Wheat</option>
+                <option>Rice</option>
+                <option>Soybean</option>
+                <option>Tomato</option>
+                <option>Potato</option>
+                <option>Cassava</option>
+                <option>Sugarcane</option>
+                <option>Cotton</option>
+                <option>Sunflower</option>
+                <option>Other</option>
+              </select>
+            </div>
+
+            <div id="wf-error" style="display:none;padding:.6rem .9rem;background:#fee2e2;color:var(--red);border:1px solid #fca5a5;border-radius:var(--radius);font-size:.875rem;margin-bottom:.8rem"></div>
+
+            <div style="display:flex;gap:.75rem;justify-content:flex-end;margin-top:1rem">
+              <button class="btn-cancel" onclick="navigate('overview')" style="padding:.6rem 1.2rem">← Back</button>
+              <button class="btn-save" id="wf-continue-btn" onclick="createFarm()">Continue →</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- shown when farm already exists -->
+      <div id="farm-detail-card" style="display:none">
+        <div class="card" style="max-width:640px;margin:0 auto">
+          <div class="card-head">
+            <h2 id="farm-detail-name">—</h2>
+            <button class="btn-add" onclick="openEditFarm()">✏️ Edit</button>
+          </div>
+          <div style="padding:1.2rem 1.5rem">
+            <table style="width:100%;font-size:.9rem;border-collapse:collapse">
+              <tbody id="farm-detail-body"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- list of all farms if more than one -->
+        <div id="farm-list-card" class="card" style="max-width:640px;margin:1rem auto 0;display:none">
+          <div class="card-head">
+            <h2>All Farms</h2>
+            <button class="btn-add" onclick="showCreateWizard()">+ New Farm</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>#</th><th>Name</th><th>Type</th><th>Location</th><th>Area</th><th>Primary Crop</th><th>Actions</th></tr></thead>
+              <tbody id="farm-list-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /farm-wizard -->
+  </div>
+
+  <!-- CROPS -->
+  <div class="section" id="section-crops">
+    <div class="page-header">
+      <h1>🌽 Crops</h1>
+      <p>Monitor crop growth stages and field locations.</p>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <h2>All Crops</h2>
+        <button class="btn-add" onclick="openModal('crop')">+ Add Crop</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>#</th><th>Name</th><th>Field Location</th><th>Growth Stage</th><th>Planted Date</th><th>Actions</th></tr>
+          </thead>
+          <tbody id="crops-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- INVENTORY -->
+  <div class="section" id="section-inventory">
+    <div class="page-header">
+      <h1>📦 Inventory</h1>
+      <p>Manage farm supplies, tools and stock levels.</p>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <h2>All Inventory Items</h2>
+        <button class="btn-add" onclick="openModal('inventory')">+ Add Item</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>#</th><th>Name</th><th>Category</th><th>Quantity</th><th>Unit</th><th>Last Updated</th><th>Actions</th></tr>
+          </thead>
+          <tbody id="inventory-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- TASKS -->
+  <div class="section" id="section-tasks">
+    <div class="page-header">
+      <h1>✅ Tasks</h1>
+      <p>Create and track farm work orders.</p>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <h2>All Tasks</h2>
+        <button class="btn-add" onclick="openModal('task')">+ Add Task</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>#</th><th>Title</th><th>Description</th><th>Status</th><th>Due Date</th><th>Actions</th></tr>
+          </thead>
+          <tbody id="tasks-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- GREENHOUSE (WF-004) -->
+  <div class="section" id="section-greenhouse">
+    <div class="page-header">
+      <h1>🏗️ Greenhouse Setup</h1>
+      <p>Add and configure your greenhouses and facilities.</p>
+    </div>
+
+    <!-- farm selector banner -->
+    <div id="gh-no-farm" class="card" style="display:none;padding:1.2rem 1.5rem;color:var(--g600)">
+      ⚠️ You need to <a href="#" onclick="navigate('farm')" style="color:var(--green);font-weight:600">create a farm first</a> before adding greenhouses.
+    </div>
+
+    <div id="gh-main" style="display:none">
+      <!-- farm selector -->
+      <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1.2rem;flex-wrap:wrap">
+        <label style="font-size:.85rem;font-weight:600;color:var(--g600)">Farm:</label>
+        <select id="gh-farm-select" onchange="loadGreenhouse()" style="padding:.4rem .75rem;border:1.5px solid var(--g200);border-radius:var(--radius);font-size:.875rem;background:var(--g100);outline:none"></select>
+        <button class="btn-add" onclick="openGhModal()">+ Add Greenhouse</button>
+      </div>
+
+      <!-- tree view -->
+      <div class="card">
+        <div class="card-head"><h2>Facilities</h2></div>
+        <div id="gh-tree" style="padding:1rem 1.5rem;font-size:.9rem"></div>
+      </div>
+
+      <!-- list table -->
+      <div class="card">
+        <div class="card-head"><h2>All Greenhouses</h2></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>#</th><th>Name</th><th>Dimensions (L×W×H m)</th><th>Irrigation</th><th>Lighting</th><th>Climate</th><th>CO₂</th><th>Zones</th><th>Actions</th></tr></thead>
+            <tbody id="gh-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GROWING ZONES (WF-005) -->
+  <div class="section" id="section-growingzones">
+    <div class="page-header">
+      <h1>🌿 Growing Zones</h1>
+      <p>Define zones, assign crops, and set operating targets.</p>
+    </div>
+
+    <div id="gz-no-gh" class="card" style="display:none;padding:1.2rem 1.5rem;color:var(--g600)">
+      ⚠️ You need to <a href="#" onclick="navigate('greenhouse')" style="color:var(--green);font-weight:600">add a greenhouse first</a> before creating growing zones.
+    </div>
+
+    <div id="gz-main" style="display:none">
+      <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1.2rem;flex-wrap:wrap">
+        <label style="font-size:.85rem;font-weight:600;color:var(--g600)">Greenhouse:</label>
+        <select id="gz-gh-select" onchange="loadGrowingZones()" style="padding:.4rem .75rem;border:1.5px solid var(--g200);border-radius:var(--radius);font-size:.875rem;background:var(--g100);outline:none"></select>
+        <button class="btn-add" onclick="openGzModal()">+ Add Zone</button>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h2>All Zones</h2></div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th><th>Zone</th><th>Crop</th><th>Growth Stage</th>
+                <th>Area m²</th><th>Plants</th><th>Temp °C</th><th>Humidity %</th>
+                <th>pH</th><th>EC</th><th>CO₂ ppm</th><th>Harvest</th><th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="gz-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- GREENHOUSE MODAL -->
+<div class="overlay" id="modal-greenhouse">
+  <div class="modal" style="max-width:560px">
+    <button class="modal-close" onclick="closeModal('greenhouse')">✕</button>
+    <h3 id="gh-modal-title">Add Greenhouse</h3>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
+      <div class="fg" style="grid-column:1/-1"><label>Name</label><input id="gh-name" placeholder="Greenhouse 01" /></div>
+      <div class="fg"><label>Length (m)</label> <input id="gh-length" type="number" min="0" step="0.1" value="0" /></div>
+      <div class="fg"><label>Width (m)</label>  <input id="gh-width"  type="number" min="0" step="0.1" value="0" /></div>
+      <div class="fg"><label>Height (m)</label> <input id="gh-height" type="number" min="0" step="0.1" value="0" /></div>
+      <div class="fg"><label>Irrigation System</label>
+        <select id="gh-irrig"><option value="">None</option><option>Drip</option><option>NFT</option><option>Flood &amp; Drain</option><option>Sprinkler</option><option>Wick</option></select>
+      </div>
+      <div class="fg"><label>Lighting System</label>
+        <select id="gh-light"><option value="">Natural</option><option>LED</option><option>HPS</option><option>CMH</option><option>Fluorescent</option></select>
+      </div>
+      <div class="fg"><label>Target CO₂ (ppm)</label><input id="gh-co2" type="number" min="0" value="400" /></div>
+      <div class="fg" style="grid-column:1/-1"><label>Notes</label><input id="gh-notes" placeholder="Optional notes…" /></div>
+    </div>
+
+    <!-- checkboxes -->
+    <div style="display:flex;flex-wrap:wrap;gap:.5rem 1.2rem;margin:.6rem 0 1rem">
+      <label style="display:flex;align-items:center;gap:.35rem;font-size:.875rem;cursor:pointer"><input type="checkbox" id="gh-climate" /> Climate Control</label>
+      <label style="display:flex;align-items:center;gap:.35rem;font-size:.875rem;cursor:pointer"><input type="checkbox" id="gh-heating" /> Heating</label>
+      <label style="display:flex;align-items:center;gap:.35rem;font-size:.875rem;cursor:pointer"><input type="checkbox" id="gh-cooling" /> Cooling</label>
+      <label style="display:flex;align-items:center;gap:.35rem;font-size:.875rem;cursor:pointer"><input type="checkbox" id="gh-humidity" /> Humidity Control</label>
+      <label style="display:flex;align-items:center;gap:.35rem;font-size:.875rem;cursor:pointer"><input type="checkbox" id="gh-autoirrig" /> Automated Irrigation</label>
+      <label style="display:flex;align-items:center;gap:.35rem;font-size:.875rem;cursor:pointer"><input type="checkbox" id="gh-supplight" /> Supplemental Lighting</label>
+      <label style="display:flex;align-items:center;gap:.35rem;font-size:.875rem;cursor:pointer"><input type="checkbox" id="gh-co2inj" /> CO₂ Injection</label>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('greenhouse')">Cancel</button>
+      <button class="btn-save"   onclick="saveGreenhouse()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- GROWING ZONE MODAL -->
+<div class="overlay" id="modal-growingzone">
+  <div class="modal" style="max-width:620px;max-height:90vh;overflow-y:auto">
+    <button class="modal-close" onclick="closeModal('growingzone')">✕</button>
+    <h3 id="gz-modal-title">Add Growing Zone</h3>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
+      <div class="fg"><label>Zone Name</label>      <input id="gz-name" placeholder="Zone 01" /></div>
+      <div class="fg"><label>Current Crop</label>
+        <select id="gz-crop"><option value="">Select crop…</option><option>Maize</option><option>Wheat</option><option>Tomato</option><option>Lettuce</option><option>Basil</option><option>Cucumber</option><option>Pepper</option><option>Strawberry</option><option>Cannabis</option><option>Other</option></select>
+      </div>
+      <div class="fg"><label>Planting Date</label>  <input id="gz-plant-date" type="date" /></div>
+      <div class="fg"><label>Growth Stage</label>
+        <select id="gz-stage"><option value="">Select…</option><option>Seed</option><option>Germination</option><option>Seedling</option><option>Vegetative</option><option>Flowering</option><option>Fruiting</option><option>Ripening</option><option>Harvested</option></select>
+      </div>
+      <div class="fg"><label>Area (m²)</label>      <input id="gz-area" type="number" min="0" step="0.1" value="0" /></div>
+      <div class="fg"><label>Plant Capacity</label> <input id="gz-capacity" type="number" min="0" value="0" /></div>
+      <div class="fg"><label>Row Spacing (cm)</label>  <input id="gz-row-sp" type="number" min="0" step="0.1" value="0" /></div>
+      <div class="fg"><label>Plant Spacing (cm)</label> <input id="gz-plant-sp" type="number" min="0" step="0.1" value="0" /></div>
+    </div>
+
+    <p style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--g400);margin:.8rem 0 .5rem">Operating Targets</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
+      <div class="fg"><label>Temp Min (°C)</label>  <input id="gz-tmin"  type="number" step="0.1" value="18" /></div>
+      <div class="fg"><label>Temp Max (°C)</label>  <input id="gz-tmax"  type="number" step="0.1" value="28" /></div>
+      <div class="fg"><label>Humidity Min (%)</label><input id="gz-hmin"  type="number" step="0.1" value="60" /></div>
+      <div class="fg"><label>Humidity Max (%)</label><input id="gz-hmax"  type="number" step="0.1" value="80" /></div>
+      <div class="fg"><label>CO₂ (ppm)</label>      <input id="gz-co2"   type="number" value="800" /></div>
+      <div class="fg"><label>Light (lux)</label>    <input id="gz-lux"   type="number" value="0" /></div>
+      <div class="fg"><label>pH Min</label>         <input id="gz-phmin" type="number" step="0.1" value="5.5" /></div>
+      <div class="fg"><label>pH Max</label>         <input id="gz-phmax" type="number" step="0.1" value="6.5" /></div>
+      <div class="fg"><label>EC Min (mS/cm)</label> <input id="gz-ecmin" type="number" step="0.1" value="1.2" /></div>
+      <div class="fg"><label>EC Max (mS/cm)</label> <input id="gz-ecmax" type="number" step="0.1" value="2.5" /></div>
+      <div class="fg"><label>Expected Harvest</label><input id="gz-harvest" type="date" /></div>
+      <div class="fg" style="grid-column:1/-1"><label>Notes</label><input id="gz-notes" placeholder="Optional notes…" /></div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('growingzone')">Cancel</button>
+      <button class="btn-save"   onclick="saveGrowingZone()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ MODALS ════════════════ -->
+
+<!-- Crop modal -->
+<div class="overlay" id="modal-crop">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('crop')">✕</button>
+    <h3 id="modal-crop-title">Add Crop</h3>
+    <div class="fg"><label>Name</label>           <input id="c-name" /></div>
+    <div class="fg"><label>Field Location</label> <input id="c-field" /></div>
+    <div class="fg">
+      <label>Growth Stage</label>
+      <select id="c-stage">
+        <option>Seed</option><option>Germination</option><option>Seedling</option>
+        <option>Vegetative</option><option>Flowering</option><option>Ripening</option><option>Harvested</option>
+      </select>
+    </div>
+    <div class="fg"><label>Planted Date</label>   <input id="c-date" type="date" /></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('crop')">Cancel</button>
+      <button class="btn-save"   onclick="saveCrop()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Inventory modal -->
+<div class="overlay" id="modal-inventory">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('inventory')">✕</button>
+    <h3 id="modal-inventory-title">Add Inventory Item</h3>
+    <div class="fg"><label>Name</label>     <input id="i-name" /></div>
+    <div class="fg">
+      <label>Category</label>
+      <select id="i-category">
+        <option>Seeds</option><option>Fertilizer</option><option>Pesticide</option>
+        <option>Tools</option><option>Feed</option><option>Medicine</option>
+        <option>Fuel</option><option>Other</option>
+      </select>
+    </div>
+    <div class="fg"><label>Quantity</label> <input id="i-qty" type="number" min="0" value="0" /></div>
+    <div class="fg"><label>Unit</label>     <input id="i-unit" placeholder="kg, L, pcs…" /></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('inventory')">Cancel</button>
+      <button class="btn-save"   onclick="saveInventory()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Task modal -->
+<div class="overlay" id="modal-task">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('task')">✕</button>
+    <h3 id="modal-task-title">Add Task</h3>
+    <div class="fg"><label>Title</label>       <input id="t-title" /></div>
+    <div class="fg"><label>Description</label> <input id="t-desc" /></div>
+    <div class="fg">
+      <label>Status</label>
+      <select id="t-status">
+        <option>Pending</option><option>In Progress</option><option>Done</option><option>Cancelled</option>
+      </select>
+    </div>
+    <div class="fg"><label>Due Date</label>    <input id="t-due" type="date" /></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('task')">Cancel</button>
+      <button class="btn-save"   onclick="saveTask()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- ══════════════ SCRIPT ════════════════ -->
+<script>
+  const API = 'http://localhost:5226/api';
+
+  /* ── auth guard ─────────────────────── */
+  const token = localStorage.getItem('farm_token');
+  if (!token) window.location.href = 'login.html';
+
+  const userEmail = localStorage.getItem('farm_email') || '';
+  const userRole  = localStorage.getItem('farm_role')  || '';
+  document.getElementById('user-email').textContent  = userEmail;
+  document.getElementById('user-role').textContent   = userRole;
+  document.getElementById('user-avatar').textContent = userEmail.slice(0,2).toUpperCase();
+  document.getElementById('greeting').textContent    = `Good day, ${userEmail.split('@')[0]} 👋`;
+
+  function logout() {
+    ['farm_token','farm_email','farm_role'].forEach(k => localStorage.removeItem(k));
+    window.location.href = 'login.html';
+  }
+
+  /* ── fetch helper ───────────────────── */
+  async function api(method, path, body) {
+    const opts = { method, headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` } };
+    if (body) opts.body = JSON.stringify(body);
+    const res = await fetch(API + path, opts);
+    if (res.status === 401) { logout(); return null; }
+    if (res.status === 204) return null;
+    return res.json();
+  }
+
+  /* ── toast ──────────────────────────── */
+  let _tt;
+  function toast(msg, err = false) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className = 'show' + (err ? ' err' : '');
+    clearTimeout(_tt);
+    _tt = setTimeout(() => el.className = '', 3000);
+  }
+
+  /* ── navigation ─────────────────────── */
+  const navMap = { overview:0, farm:1, crops:2, inventory:3, tasks:4, greenhouse:5, growingzones:6 };
+
+  function navigate(name) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById('section-' + name).classList.add('active');
+    document.querySelectorAll('.nav-item')[navMap[name]].classList.add('active');
+    loaders[name]();
+  }
+
+  /* ── helpers ────────────────────────── */
+  const fmtDate = iso => iso ? new Date(iso).toLocaleDateString() : '—';
+  const loadingRow = cols => `<tr class="loading-row"><td colspan="${cols}"><span class="spinner"></span> Loading…</td></tr>`;
+  const emptyRow   = (cols, msg='No records found.') => `<tr class="empty-row"><td colspan="${cols}">${msg}</td></tr>`;
+  const esc = s => (s||'').replace(/'/g,"\\'");
+
+  /* ── badges ─────────────────────────── */
+  function stageBadge(s) {
+    const m = {Seed:'gray',Germination:'yellow',Seedling:'green',Vegetative:'green',Flowering:'blue',Ripening:'yellow',Harvested:'gray'};
+    return `<span class="badge badge-${m[s]||'gray'}">${s||'—'}</span>`;
+  }
+  function statusBadge(s) {
+    const m = {'Pending':'yellow','In Progress':'blue','Done':'green','Cancelled':'gray'};
+    return `<span class="badge badge-${m[s]||'gray'}">${s||'—'}</span>`;
+  }
+
+  /* ══════════════════════════════════════
+     OVERVIEW
+  ══════════════════════════════════════ */
+  async function loadOverview() {
+    const [crops, inv, tasks] = await Promise.all([
+      api('GET', '/crops'),
+      api('GET', '/inventory'),
+      api('GET', '/tasks')
+    ]);
+
+    document.getElementById('count-crops').textContent     = crops?.length ?? '!';
+    document.getElementById('count-inventory').textContent = inv?.length   ?? '!';
+    document.getElementById('count-tasks').textContent     =
+      tasks?.filter(t => t.status !== 'Done' && t.status !== 'Cancelled').length ?? '!';
+
+    const tb = document.getElementById('overview-tasks-body');
+    tb.innerHTML = (!tasks || !tasks.length)
+      ? emptyRow(3, 'No tasks yet.')
+      : tasks.slice(0,5).map(t => `<tr><td>${t.title}</td><td>${statusBadge(t.status)}</td><td>${fmtDate(t.dueDate)}</td></tr>`).join('');
+
+    const ib = document.getElementById('overview-inv-body');
+    ib.innerHTML = (!inv || !inv.length)
+      ? emptyRow(4, 'No inventory items yet.')
+      : inv.slice(0,5).map(i => `<tr><td>${i.name}</td><td><span class="badge badge-blue">${i.category}</span></td><td>${i.quantity}</td><td>${i.unit}</td></tr>`).join('');
+  }
+
+  /* ══════════════════════════════════════
+     CROPS
+  ══════════════════════════════════════ */
+  async function loadCrops() {
+    const tb = document.getElementById('crops-body');
+    tb.innerHTML = loadingRow(6);
+    const data = await api('GET', '/crops');
+    if (!data || !data.length) { tb.innerHTML = emptyRow(6); return; }
+    tb.innerHTML = data.map(c => `
+      <tr>
+        <td>${c.id}</td>
+        <td><strong>${c.name}</strong></td>
+        <td>${c.fieldLocation}</td>
+        <td>${stageBadge(c.growthStage)}</td>
+        <td>${fmtDate(c.plantedDate)}</td>
+        <td>
+          <button class="btn-icon" onclick="editCrop(${c.id},'${esc(c.name)}','${esc(c.fieldLocation)}','${esc(c.growthStage)}','${(c.plantedDate||'').slice(0,10)}')">✏️</button>
+          <button class="btn-icon del" onclick="del('crop',${c.id})">🗑️</button>
+        </td>
+      </tr>`).join('');
+  }
+
+  /* ══════════════════════════════════════
+     INVENTORY
+  ══════════════════════════════════════ */
+  async function loadInventory() {
+    const tb = document.getElementById('inventory-body');
+    tb.innerHTML = loadingRow(7);
+    const data = await api('GET', '/inventory');
+    if (!data || !data.length) { tb.innerHTML = emptyRow(7); return; }
+    tb.innerHTML = data.map(i => `
+      <tr>
+        <td>${i.id}</td>
+        <td><strong>${i.name}</strong></td>
+        <td><span class="badge badge-blue">${i.category}</span></td>
+        <td>${i.quantity}</td>
+        <td>${i.unit}</td>
+        <td>${fmtDate(i.lastUpdated)}</td>
+        <td>
+          <button class="btn-icon" onclick="editInventory(${i.id},'${esc(i.name)}','${esc(i.category)}',${i.quantity},'${esc(i.unit)}')">✏️</button>
+          <button class="btn-icon del" onclick="del('inventory',${i.id})">🗑️</button>
+        </td>
+      </tr>`).join('');
+  }
+
+  /* ══════════════════════════════════════
+     TASKS
+  ══════════════════════════════════════ */
+  async function loadTasks() {
+    const tb = document.getElementById('tasks-body');
+    tb.innerHTML = loadingRow(6);
+    const data = await api('GET', '/tasks');
+    if (!data || !data.length) { tb.innerHTML = emptyRow(6); return; }
+    tb.innerHTML = data.map(t => `
+      <tr>
+        <td>${t.id}</td>
+        <td><strong>${t.title}</strong></td>
+        <td>${t.description}</td>
+        <td>${statusBadge(t.status)}</td>
+        <td>${fmtDate(t.dueDate)}</td>
+        <td>
+          <button class="btn-icon" onclick="editTask(${t.id},'${esc(t.title)}','${esc(t.description)}','${esc(t.status)}','${(t.dueDate||'').slice(0,10)}')">✏️</button>
+          <button class="btn-icon del" onclick="del('task',${t.id})">🗑️</button>
+        </td>
+      </tr>`).join('');
+  }
+
+  const loaders = { overview: loadOverview, farm: loadFarm, crops: loadCrops, inventory: loadInventory, tasks: loadTasks, greenhouse: loadGreenhouse, growingzones: loadGrowingZones };
+
+  /* ══════════════════════════════════════
+     MODAL helpers
+  ══════════════════════════════════════ */
+  let editId = {};
+
+  function openModal(type) {
+    editId[type] = null;
+    const titles = { crop:'Add Crop', inventory:'Add Inventory Item', task:'Add Task' };
+    document.getElementById('modal-' + type + '-title').textContent = titles[type];
+    _clearModal(type);
+    document.getElementById('modal-' + type).classList.add('open');
+  }
+  function closeModal(type) { document.getElementById('modal-' + type).classList.remove('open'); }
+
+  function _clearModal(type) {
+    ({crop:['c-name','c-field','c-date'], inventory:['i-name','i-unit'], task:['t-title','t-desc','t-due']}[type]||[])
+      .forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+    if (type === 'inventory') document.getElementById('i-qty').value = '0';
+  }
+
+  /* ── CROP CRUD ──────────────────────── */
+  function editCrop(id, name, field, stage, date) {
+    editId.crop = id;
+    document.getElementById('modal-crop-title').textContent = 'Edit Crop';
+    document.getElementById('c-name').value  = name;
+    document.getElementById('c-field').value = field;
+    document.getElementById('c-stage').value = stage;
+    document.getElementById('c-date').value  = date;
+    document.getElementById('modal-crop').classList.add('open');
+  }
+  async function saveCrop() {
+    const body = { name: document.getElementById('c-name').value.trim(), fieldLocation: document.getElementById('c-field').value.trim(), growthStage: document.getElementById('c-stage').value, plantedDate: document.getElementById('c-date').value || new Date().toISOString() };
+    if (!body.name) { toast('Name is required', true); return; }
+    const id = editId.crop;
+    await (id ? api('PUT', `/crops/${id}`, body) : api('POST', '/crops', body));
+    toast(id ? 'Crop updated' : 'Crop added');
+    closeModal('crop'); loadCrops();
+  }
+
+  /* ── INVENTORY CRUD ─────────────────── */
+  function editInventory(id, name, category, qty, unit) {
+    editId.inventory = id;
+    document.getElementById('modal-inventory-title').textContent = 'Edit Item';
+    document.getElementById('i-name').value     = name;
+    document.getElementById('i-category').value = category;
+    document.getElementById('i-qty').value      = qty;
+    document.getElementById('i-unit').value     = unit;
+    document.getElementById('modal-inventory').classList.add('open');
+  }
+  async function saveInventory() {
+    const body = { name: document.getElementById('i-name').value.trim(), category: document.getElementById('i-category').value, quantity: parseInt(document.getElementById('i-qty').value)||0, unit: document.getElementById('i-unit').value.trim() };
+    if (!body.name) { toast('Name is required', true); return; }
+    const id = editId.inventory;
+    await (id ? api('PUT', `/inventory/${id}`, body) : api('POST', '/inventory', body));
+    toast(id ? 'Item updated' : 'Item added');
+    closeModal('inventory'); loadInventory();
+  }
+
+  /* ── TASK CRUD ──────────────────────── */
+  function editTask(id, title, desc, status, due) {
+    editId.task = id;
+    document.getElementById('modal-task-title').textContent = 'Edit Task';
+    document.getElementById('t-title').value  = title;
+    document.getElementById('t-desc').value   = desc;
+    document.getElementById('t-status').value = status;
+    document.getElementById('t-due').value    = due;
+    document.getElementById('modal-task').classList.add('open');
+  }
+  async function saveTask() {
+    const body = { title: document.getElementById('t-title').value.trim(), description: document.getElementById('t-desc').value.trim(), status: document.getElementById('t-status').value, dueDate: document.getElementById('t-due').value || new Date().toISOString() };
+    if (!body.title) { toast('Title is required', true); return; }
+    const id = editId.task;
+    await (id ? api('PUT', `/tasks/${id}`, body) : api('POST', '/tasks', body));
+    toast(id ? 'Task updated' : 'Task added');
+    closeModal('task'); loadTasks();
+  }
+
+  /* ── DELETE ─────────────────────────── */
+  async function del(type, id) {
+    if (!confirm('Delete this record?')) return;
+    const paths = { crop:'/crops', inventory:'/inventory', task:'/tasks' };
+    await api('DELETE', `${paths[type]}/${id}`);
+    toast('Deleted');
+    ({ crop: loadCrops, inventory: loadInventory, task: loadTasks })[type]();
+  }
+
+  /* ── close on backdrop click ────────── */
+  document.querySelectorAll('.overlay').forEach(o => o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); }));
+
+  /* ══════════════════════════════════════
+     GREENHOUSE  (WF-004)
+  ══════════════════════════════════════ */
+  let _ghEditId = null;
+  let _ghFarms  = [];
+
+  async function loadGreenhouse() {
+    const farms = await api('GET', '/farms');
+    _ghFarms = farms || [];
+
+    if (!_ghFarms.length) {
+      document.getElementById('gh-no-farm').style.display = 'block';
+      document.getElementById('gh-main').style.display    = 'none';
+      return;
+    }
+    document.getElementById('gh-no-farm').style.display = 'none';
+    document.getElementById('gh-main').style.display    = 'block';
+
+    const sel = document.getElementById('gh-farm-select');
+    const cur = sel.value;
+    sel.innerHTML = _ghFarms.map(f => `<option value="${f.id}">${f.name}</option>`).join('');
+    if (cur) sel.value = cur;
+
+    const farmId = parseInt(sel.value);
+    if (!farmId) return;
+
+    const ghs = await api('GET', `/greenhouses?farmId=${farmId}`);
+    if (!ghs) return;
+
+    const farm = _ghFarms.find(f => f.id === farmId);
+    const treeEl = document.getElementById('gh-tree');
+    if (!ghs.length) {
+      treeEl.innerHTML = `<span style="color:var(--g400);font-style:italic">No greenhouses yet. Click + Add Greenhouse to create one.</span>`;
+    } else {
+      treeEl.innerHTML =
+        `<div style="font-weight:700;margin-bottom:.5rem">🌾 ${farm?.name}</div>` +
+        ghs.map((g, gi) => {
+          const c = gi < ghs.length - 1 ? '├──' : '└──';
+          return `<div style="padding-left:1rem">${c} 🏗️ <strong>${g.name}</strong> <span style="color:var(--g400);font-size:.78rem">(${g.zoneCount} zone${g.zoneCount !== 1 ? 's' : ''})</span></div>`;
+        }).join('');
+    }
+
+    const tb = document.getElementById('gh-body');
+    if (!ghs.length) { tb.innerHTML = emptyRow(9); return; }
+    tb.innerHTML = ghs.map(g => `
+      <tr>
+        <td>${g.id}</td>
+        <td><strong>${g.name}</strong></td>
+        <td>${g.lengthM}×${g.widthM}×${g.heightM}</td>
+        <td>${g.irrigationSystem || '—'}</td>
+        <td>${g.lightingSystem || 'Natural'}</td>
+        <td>${[g.hasClimateControl && '🌡️', g.hasHeating && '🔥', g.hasCooling && '❄️', g.hasHumidityControl && '💧'].filter(Boolean).join(' ') || '—'}</td>
+        <td>${g.hasCO2Injection ? '✅ ' + g.targetCO2Ppm + ' ppm' : '—'}</td>
+        <td><span style="font-weight:700;color:var(--green)">${g.zoneCount}</span></td>
+        <td>
+          <button class="btn-icon" onclick="editGreenhouse(${g.id})">✏️</button>
+          <button class="btn-icon del" onclick="deleteGreenhouse(${g.id})">🗑️</button>
+        </td>
+      </tr>`).join('');
+  }
+
+  function openGhModal() {
+    _ghEditId = null;
+    document.getElementById('gh-modal-title').textContent = 'Add Greenhouse';
+    ['gh-name','gh-notes'].forEach(id => document.getElementById(id).value = '');
+    ['gh-length','gh-width','gh-height'].forEach(id => document.getElementById(id).value = '0');
+    document.getElementById('gh-co2').value   = '400';
+    document.getElementById('gh-irrig').value = '';
+    document.getElementById('gh-light').value = '';
+    ['gh-climate','gh-heating','gh-cooling','gh-humidity','gh-autoirrig','gh-supplight','gh-co2inj']
+      .forEach(id => document.getElementById(id).checked = false);
+    document.getElementById('modal-greenhouse').classList.add('open');
+  }
+
+  async function editGreenhouse(id) {
+    const g = await api('GET', `/greenhouses/${id}`);
+    if (!g) return;
+    _ghEditId = id;
+    document.getElementById('gh-modal-title').textContent = 'Edit — ' + g.name;
+    document.getElementById('gh-name').value   = g.name;
+    document.getElementById('gh-length').value = g.lengthM;
+    document.getElementById('gh-width').value  = g.widthM;
+    document.getElementById('gh-height').value = g.heightM;
+    document.getElementById('gh-irrig').value  = g.irrigationSystem;
+    document.getElementById('gh-light').value  = g.lightingSystem;
+    document.getElementById('gh-co2').value    = g.targetCO2Ppm;
+    document.getElementById('gh-notes').value  = g.notes;
+    document.getElementById('gh-climate').checked    = g.hasClimateControl;
+    document.getElementById('gh-heating').checked    = g.hasHeating;
+    document.getElementById('gh-cooling').checked    = g.hasCooling;
+    document.getElementById('gh-humidity').checked   = g.hasHumidityControl;
+    document.getElementById('gh-autoirrig').checked  = g.hasAutomatedIrrig;
+    document.getElementById('gh-supplight').checked  = g.hasSupplementalLight;
+    document.getElementById('gh-co2inj').checked     = g.hasCO2Injection;
+    document.getElementById('modal-greenhouse').classList.add('open');
+  }
+
+  async function saveGreenhouse() {
+    const farmId = parseInt(document.getElementById('gh-farm-select').value);
+    const body = {
+      name:                 document.getElementById('gh-name').value.trim(),
+      farmId,
+      lengthM:              parseFloat(document.getElementById('gh-length').value)||0,
+      widthM:               parseFloat(document.getElementById('gh-width').value)||0,
+      heightM:              parseFloat(document.getElementById('gh-height').value)||0,
+      irrigationSystem:     document.getElementById('gh-irrig').value,
+      lightingSystem:       document.getElementById('gh-light').value,
+      targetCO2Ppm:         parseFloat(document.getElementById('gh-co2').value)||400,
+      notes:                document.getElementById('gh-notes').value.trim(),
+      hasClimateControl:    document.getElementById('gh-climate').checked,
+      hasHeating:           document.getElementById('gh-heating').checked,
+      hasCooling:           document.getElementById('gh-cooling').checked,
+      hasHumidityControl:   document.getElementById('gh-humidity').checked,
+      hasAutomatedIrrig:    document.getElementById('gh-autoirrig').checked,
+      hasSupplementalLight: document.getElementById('gh-supplight').checked,
+      hasCO2Injection:      document.getElementById('gh-co2inj').checked
+    };
+    if (!body.name) { toast('Name is required', true); return; }
+    await (_ghEditId ? api('PUT', `/greenhouses/${_ghEditId}`, body) : api('POST', '/greenhouses', body));
+    toast(_ghEditId ? 'Greenhouse updated' : 'Greenhouse added');
+    closeModal('greenhouse'); loadGreenhouse();
+  }
+
+  async function deleteGreenhouse(id) {
+    if (!confirm('Delete this greenhouse and all its zones? This cannot be undone.')) return;
+    await api('DELETE', `/greenhouses/${id}`);
+    toast('Greenhouse deleted'); loadGreenhouse();
+  }
+
+  /* ══════════════════════════════════════
+     GROWING ZONES  (WF-005)
+  ══════════════════════════════════════ */
+  let _gzEditId = null;
+  let _gzGhs    = [];
+
+  async function loadGrowingZones() {
+    const ghs = await api('GET', '/greenhouses');
+    _gzGhs = ghs || [];
+
+    if (!_gzGhs.length) {
+      document.getElementById('gz-no-gh').style.display = 'block';
+      document.getElementById('gz-main').style.display  = 'none';
+      return;
+    }
+    document.getElementById('gz-no-gh').style.display = 'none';
+    document.getElementById('gz-main').style.display  = 'block';
+
+    const sel = document.getElementById('gz-gh-select');
+    const cur = sel.value;
+    sel.innerHTML = _gzGhs.map(g => `<option value="${g.id}">${g.name}</option>`).join('');
+    if (cur) sel.value = cur;
+
+    const ghId = parseInt(sel.value);
+    if (!ghId) return;
+
+    const zones = await api('GET', `/growingzones?greenhouseId=${ghId}`);
+    if (!zones) return;
+
+    const tb = document.getElementById('gz-body');
+    if (!zones.length) { tb.innerHTML = emptyRow(13); return; }
+    tb.innerHTML = zones.map(z => `
+      <tr>
+        <td>${z.id}</td>
+        <td><strong>${z.name}</strong></td>
+        <td>${z.currentCrop || '—'}</td>
+        <td>${stageBadge(z.growthStage || '—')}</td>
+        <td>${z.areaM2}</td>
+        <td>${z.plantCapacity}</td>
+        <td>${z.targetTempMinC}–${z.targetTempMaxC}</td>
+        <td>${z.targetHumidityMinPct}–${z.targetHumidityMaxPct}</td>
+        <td>${z.targetPhMin}–${z.targetPhMax}</td>
+        <td>${z.targetEcMin}–${z.targetEcMax}</td>
+        <td>${z.targetCO2Ppm}</td>
+        <td>${fmtDate(z.expectedHarvestDate)}</td>
+        <td>
+          <button class="btn-icon" onclick="editGrowingZone(${z.id})">✏️</button>
+          <button class="btn-icon del" onclick="deleteGrowingZone(${z.id})">🗑️</button>
+        </td>
+      </tr>`).join('');
+  }
+
+  function openGzModal() {
+    _gzEditId = null;
+    document.getElementById('gz-modal-title').textContent = 'Add Growing Zone';
+    ['gz-name','gz-notes'].forEach(id => document.getElementById(id).value = '');
+    ['gz-area','gz-capacity','gz-row-sp','gz-plant-sp'].forEach(id => document.getElementById(id).value = '0');
+    document.getElementById('gz-crop').value = ''; document.getElementById('gz-stage').value = '';
+    document.getElementById('gz-plant-date').value = ''; document.getElementById('gz-harvest').value = '';
+    document.getElementById('gz-tmin').value='18'; document.getElementById('gz-tmax').value='28';
+    document.getElementById('gz-hmin').value='60'; document.getElementById('gz-hmax').value='80';
+    document.getElementById('gz-co2').value='800';  document.getElementById('gz-lux').value='0';
+    document.getElementById('gz-phmin').value='5.5'; document.getElementById('gz-phmax').value='6.5';
+    document.getElementById('gz-ecmin').value='1.2'; document.getElementById('gz-ecmax').value='2.5';
+    document.getElementById('modal-growingzone').classList.add('open');
+  }
+
+  async function editGrowingZone(id) {
+    const z = await api('GET', `/growingzones/${id}`);
+    if (!z) return;
+    _gzEditId = id;
+    document.getElementById('gz-modal-title').textContent = 'Edit — ' + z.name;
+    document.getElementById('gz-name').value       = z.name;
+    document.getElementById('gz-crop').value       = z.currentCrop;
+    document.getElementById('gz-stage').value      = z.growthStage;
+    document.getElementById('gz-plant-date').value = z.plantingDate?.slice(0,10) || '';
+    document.getElementById('gz-area').value       = z.areaM2;
+    document.getElementById('gz-capacity').value   = z.plantCapacity;
+    document.getElementById('gz-row-sp').value     = z.rowSpacingCm;
+    document.getElementById('gz-plant-sp').value   = z.plantSpacingCm;
+    document.getElementById('gz-tmin').value  = z.targetTempMinC;
+    document.getElementById('gz-tmax').value  = z.targetTempMaxC;
+    document.getElementById('gz-hmin').value  = z.targetHumidityMinPct;
+    document.getElementById('gz-hmax').value  = z.targetHumidityMaxPct;
+    document.getElementById('gz-co2').value   = z.targetCO2Ppm;
+    document.getElementById('gz-lux').value   = z.targetLightLux;
+    document.getElementById('gz-phmin').value = z.targetPhMin;
+    document.getElementById('gz-phmax').value = z.targetPhMax;
+    document.getElementById('gz-ecmin').value = z.targetEcMin;
+    document.getElementById('gz-ecmax').value = z.targetEcMax;
+    document.getElementById('gz-harvest').value = z.expectedHarvestDate?.slice(0,10) || '';
+    document.getElementById('gz-notes').value   = z.notes;
+    document.getElementById('modal-growingzone').classList.add('open');
+  }
+
+  async function saveGrowingZone() {
+    const ghId = parseInt(document.getElementById('gz-gh-select').value);
+    const body = {
+      name:                 document.getElementById('gz-name').value.trim(),
+      greenhouseId:         ghId,
+      currentCrop:          document.getElementById('gz-crop').value,
+      growthStage:          document.getElementById('gz-stage').value,
+      plantingDate:         document.getElementById('gz-plant-date').value || null,
+      areaM2:               parseFloat(document.getElementById('gz-area').value)||0,
+      plantCapacity:        parseInt(document.getElementById('gz-capacity').value)||0,
+      rowSpacingCm:         parseFloat(document.getElementById('gz-row-sp').value)||0,
+      plantSpacingCm:       parseFloat(document.getElementById('gz-plant-sp').value)||0,
+      targetTempMinC:       parseFloat(document.getElementById('gz-tmin').value)||18,
+      targetTempMaxC:       parseFloat(document.getElementById('gz-tmax').value)||28,
+      targetHumidityMinPct: parseFloat(document.getElementById('gz-hmin').value)||60,
+      targetHumidityMaxPct: parseFloat(document.getElementById('gz-hmax').value)||80,
+      targetCO2Ppm:         parseFloat(document.getElementById('gz-co2').value)||800,
+      targetLightLux:       parseFloat(document.getElementById('gz-lux').value)||0,
+      targetPhMin:          parseFloat(document.getElementById('gz-phmin').value)||5.5,
+      targetPhMax:          parseFloat(document.getElementById('gz-phmax').value)||6.5,
+      targetEcMin:          parseFloat(document.getElementById('gz-ecmin').value)||1.2,
+      targetEcMax:          parseFloat(document.getElementById('gz-ecmax').value)||2.5,
+      expectedHarvestDate:  document.getElementById('gz-harvest').value || null,
+      notes:                document.getElementById('gz-notes').value.trim()
+    };
+    if (!body.name) { toast('Zone name is required', true); return; }
+    await (_gzEditId ? api('PUT', `/growingzones/${_gzEditId}`, body) : api('POST', '/growingzones', body));
+    toast(_gzEditId ? 'Zone updated' : 'Zone added');
+    closeModal('growingzone'); loadGrowingZones();
+  }
+
+  async function deleteGrowingZone(id) {
+    if (!confirm('Delete this growing zone?')) return;
+    await api('DELETE', `/growingzones/${id}`);
+    toast('Zone deleted'); loadGrowingZones();
+  }
+
+  loadOverview();
+
+  /* ══════════════════════════════════════
+     FARM  (WF-003)
+  ══════════════════════════════════════ */
+  let _editFarmId = null;
+
+  async function loadFarm() {
+    // hide both panels while loading
+    document.getElementById('farm-create-wizard').style.display = 'none';
+    document.getElementById('farm-detail-card').style.display   = 'none';
+
+    const farms = await api('GET', '/farms');
+    if (!farms) return;
+
+    if (farms.length === 0) {
+      // no farm yet — show the Step 1 wizard
+      showCreateWizard();
+      return;
+    }
+
+    // show first farm as detail
+    showFarmDetail(farms[0]);
+
+    // if multiple farms exist show the list card too
+    const listCard = document.getElementById('farm-list-card');
+    if (farms.length > 1) {
+      listCard.style.display = 'block';
+      const tb = document.getElementById('farm-list-body');
+      tb.innerHTML = farms.map(f => `
+        <tr>
+          <td>${f.id}</td>
+          <td><strong>${f.name}</strong></td>
+          <td>${f.farmType}</td>
+          <td>${f.address || '—'}</td>
+          <td>${f.area} ${f.areaUnit}</td>
+          <td>${f.primaryCrop || '—'}</td>
+          <td>
+            <button class="btn-icon" onclick="openEditFarmById(${f.id})">✏️</button>
+            <button class="btn-icon del" onclick="deleteFarm(${f.id})">🗑️</button>
+          </td>
+        </tr>`).join('');
+    } else {
+      listCard.style.display = 'none';
+    }
+  }
+
+  function showCreateWizard() {
+    _editFarmId = null;
+    // clear fields
+    ['wf-name','wf-address','wf-area'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('wf-type').value = '';
+    document.getElementById('wf-unit').value = 'm²';
+    document.getElementById('wf-crop').value = '';
+    document.getElementById('wf-error').style.display = 'none';
+    document.getElementById('wf-continue-btn').textContent = 'Continue →';
+    document.getElementById('farm-create-wizard').style.display = 'block';
+    document.getElementById('farm-detail-card').style.display   = 'none';
+  }
+
+  function showFarmDetail(f) {
+    document.getElementById('farm-detail-name').textContent = `🏡 ${f.name}`;
+    document.getElementById('farm-create-wizard').style.display = 'none';
+    document.getElementById('farm-detail-card').style.display   = 'block';
+
+    const rows = [
+      ['Farm Type',     f.farmType   || '—'],
+      ['Location',      f.address    || '—'],
+      ['Area',          `${f.area} ${f.areaUnit}`],
+      ['Primary Crop',  f.primaryCrop|| '—'],
+      ['Created',       fmtDate(f.createdAt)],
+    ];
+    document.getElementById('farm-detail-body').innerHTML = rows.map(([k,v]) => `
+      <tr>
+        <td style="padding:.5rem .25rem;color:var(--g600);font-weight:600;width:40%;font-size:.85rem">${k}</td>
+        <td style="padding:.5rem .25rem;font-size:.9rem">${v}</td>
+      </tr>`).join('');
+  }
+
+  async function createFarm() {
+    const errEl = document.getElementById('wf-error');
+    errEl.style.display = 'none';
+
+    const name   = document.getElementById('wf-name').value.trim();
+    const type   = document.getElementById('wf-type').value;
+    const addr   = document.getElementById('wf-address').value.trim();
+    const area   = parseFloat(document.getElementById('wf-area').value) || 0;
+    const unit   = document.getElementById('wf-unit').value;
+    const crop   = document.getElementById('wf-crop').value;
+
+    if (!name)  { showFarmError('Farm Name is required.');  return; }
+    if (!type)  { showFarmError('Please select a Farm Type.'); return; }
+    if (!addr)  { showFarmError('Location is required.'); return; }
+    if (area <= 0){ showFarmError('Area must be greater than 0.'); return; }
+    if (!crop)  { showFarmError('Please select a Primary Crop.'); return; }
+
+    const btn = document.getElementById('wf-continue-btn');
+    btn.disabled = true;
+    btn.textContent = _editFarmId ? 'Saving…' : 'Creating…';
+
+    const body = { name, farmType: type, address: addr, area, areaUnit: unit, primaryCrop: crop };
+
+    const res = _editFarmId
+      ? await api('PUT',  `/farms/${_editFarmId}`, body)
+      : await api('POST', '/farms', body);
+
+    btn.disabled = false;
+    btn.textContent = 'Continue →';
+
+    if (res === null && _editFarmId) {
+      // PUT returns 204 null — reload
+      toast('Farm updated');
+      _editFarmId = null;
+      loadFarm();
+    } else if (res?.id) {
+      toast('Farm created! You can now add crops and tasks.');
+      loadFarm();
+    } else if (res?.message) {
+      showFarmError(res.message);
+    }
+  }
+
+  function showFarmError(msg) {
+    const el = document.getElementById('wf-error');
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+
+  async function openEditFarm() {
+    // fetch first farm and pre-fill wizard for editing
+    const farms = await api('GET', '/farms');
+    if (farms?.length) openEditFarmById(farms[0].id, farms[0]);
+  }
+
+  async function openEditFarmById(id, farmData) {
+    const f = farmData || await api('GET', `/farms/${id}`);
+    if (!f) return;
+    _editFarmId = f.id;
+    document.getElementById('wf-name').value    = f.name;
+    document.getElementById('wf-type').value    = f.farmType;
+    document.getElementById('wf-address').value = f.address;
+    document.getElementById('wf-area').value    = f.area;
+    document.getElementById('wf-unit').value    = f.areaUnit;
+    document.getElementById('wf-crop').value    = f.primaryCrop;
+    document.getElementById('wf-error').style.display = 'none';
+    document.getElementById('wf-continue-btn').textContent = 'Save Changes';
+    document.getElementById('farm-create-wizard').style.display = 'block';
+    document.getElementById('farm-detail-card').style.display   = 'none';
+  }
+
+  async function deleteFarm(id) {
+    if (!confirm('Delete this farm? This cannot be undone.')) return;
+    await api('DELETE', `/farms/${id}`);
+    toast('Farm deleted');
+    loadFarm();
+  }
+</script>
+</body>
+</html>

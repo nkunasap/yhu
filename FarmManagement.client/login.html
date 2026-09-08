@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Farm Management – Login</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green-dark: #1a4d2e;
+      --green:      #2d7a4f;
+      --green-lt:   #4caf80;
+      --cream:      #f5f0e8;
+      --white:      #ffffff;
+      --g100:       #f4f4f5;
+      --g200:       #e4e4e7;
+      --g400:       #a1a1aa;
+      --g600:       #52525b;
+      --g800:       #27272a;
+      --red:        #dc2626;
+      --radius:     9px;
+      --shadow:     0 8px 40px rgba(0,0,0,.22);
+    }
+
+    /* ── animated background ─────────────────────── */
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+      background: var(--green-dark);
+    }
+
+    /* animated gradient sweep */
+    .bg {
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(135deg, #1a4d2e 0%, #2d7a4f 40%, #1a4d2e 70%, #0f3320 100%);
+      background-size: 300% 300%;
+      animation: gradShift 10s ease infinite;
+      z-index: 0;
+    }
+    @keyframes gradShift {
+      0%   { background-position: 0% 50%; }
+      50%  { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    /* floating leaves */
+    .leaves { position: fixed; inset: 0; pointer-events: none; z-index: 1; overflow: hidden; }
+    .leaf {
+      position: absolute;
+      font-size: 1.4rem;
+      opacity: 0;
+      animation: fall linear infinite;
+    }
+    .leaf:nth-child(1)  { left: 8%;  animation-duration: 14s; animation-delay: 0s;    font-size: 1.2rem; }
+    .leaf:nth-child(2)  { left: 18%; animation-duration: 18s; animation-delay: -3s;   font-size: 1.6rem; }
+    .leaf:nth-child(3)  { left: 30%; animation-duration: 12s; animation-delay: -6s;   font-size: 1rem; }
+    .leaf:nth-child(4)  { left: 45%; animation-duration: 16s; animation-delay: -2s;   font-size: 1.8rem; }
+    .leaf:nth-child(5)  { left: 58%; animation-duration: 20s; animation-delay: -9s;   font-size: 1.1rem; }
+    .leaf:nth-child(6)  { left: 70%; animation-duration: 13s; animation-delay: -5s;   font-size: 1.5rem; }
+    .leaf:nth-child(7)  { left: 82%; animation-duration: 17s; animation-delay: -1s;   font-size: 1.3rem; }
+    .leaf:nth-child(8)  { left: 92%; animation-duration: 15s; animation-delay: -7s;   font-size: 1.7rem; }
+
+    @keyframes fall {
+      0%   { transform: translateY(-60px) rotate(0deg);   opacity: 0; }
+      5%   { opacity: .7; }
+      90%  { opacity: .5; }
+      100% { transform: translateY(105vh) rotate(360deg); opacity: 0; }
+    }
+
+    /* ── card ────────────────────────────────────── */
+    .card {
+      position: relative;
+      z-index: 10;
+      background: var(--white);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      width: 100%;
+      max-width: 420px;
+      padding: 2.5rem 2rem;
+      animation: popIn .5s cubic-bezier(.22,1,.36,1) both;
+    }
+
+    @keyframes popIn {
+      from { opacity: 0; transform: translateY(28px) scale(.97); }
+      to   { opacity: 1; transform: translateY(0)    scale(1); }
+    }
+
+    /* ── logo ────────────────────────────────────── */
+    .logo { text-align: center; margin-bottom: 1.6rem; }
+    .logo .icon {
+      font-size: 3rem;
+      display: inline-block;
+      animation: sway 3s ease-in-out infinite;
+    }
+    @keyframes sway {
+      0%, 100% { transform: rotate(-5deg); }
+      50%       { transform: rotate(5deg); }
+    }
+    .logo h1 { font-size: 1.45rem; font-weight: 700; color: var(--green-dark); margin-top: .3rem; }
+    .logo p  { font-size: .875rem; color: var(--g600); margin-top: .2rem; }
+
+    /* ── tabs ────────────────────────────────────── */
+    .tabs { display: flex; border-bottom: 2px solid var(--g200); margin-bottom: 1.5rem; }
+    .tab {
+      flex: 1; padding: .6rem; text-align: center;
+      font-size: .9rem; font-weight: 600; cursor: pointer;
+      color: var(--g400); border-bottom: 2px solid transparent;
+      margin-bottom: -2px; transition: color .15s, border-color .15s;
+    }
+    .tab.active { color: var(--green); border-bottom-color: var(--green); }
+
+    .panel { display: none; }
+    .panel.active { display: block; animation: fadeSlide .25s ease both; }
+    @keyframes fadeSlide {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── form ────────────────────────────────────── */
+    .form-group { margin-bottom: 1rem; }
+    .form-group label {
+      display: block; font-size: .82rem; font-weight: 600;
+      color: var(--g600); margin-bottom: .35rem;
+      text-transform: uppercase; letter-spacing: .04em;
+    }
+    .form-group input,
+    .form-group select {
+      width: 100%; padding: .65rem .9rem;
+      border: 1.5px solid var(--g200); border-radius: var(--radius);
+      font-size: .95rem; background: var(--g100); outline: none;
+      transition: border-color .15s, box-shadow .15s, background .15s;
+    }
+    .form-group input:focus,
+    .form-group select:focus {
+      border-color: var(--green);
+      box-shadow: 0 0 0 3px rgba(45,122,79,.15);
+      background: var(--white);
+    }
+
+    /* ── buttons ─────────────────────────────────── */
+    .btn {
+      width: 100%; padding: .72rem;
+      background: var(--green); color: var(--white);
+      border: none; border-radius: var(--radius);
+      font-size: 1rem; font-weight: 700; cursor: pointer;
+      transition: background .15s, transform .1s, opacity .15s;
+      margin-top: .4rem;
+    }
+    .btn:hover:not(:disabled) { background: var(--green-dark); transform: translateY(-1px); }
+    .btn:active { transform: translateY(0); }
+    .btn:disabled { opacity: .55; cursor: not-allowed; }
+
+    /* admin button */
+    .btn-admin {
+      width: 100%; padding: .6rem;
+      background: transparent;
+      color: var(--g600);
+      border: 1.5px dashed var(--g200);
+      border-radius: var(--radius);
+      font-size: .85rem; font-weight: 600; cursor: pointer;
+      margin-top: 1rem;
+      transition: border-color .15s, color .15s, background .15s;
+      display: flex; align-items: center; justify-content: center; gap: .4rem;
+    }
+    .btn-admin:hover {
+      border-color: var(--green);
+      color: var(--green-dark);
+      background: rgba(45,122,79,.06);
+    }
+
+    /* ── alert ───────────────────────────────────── */
+    .alert {
+      padding: .65rem .9rem; border-radius: var(--radius);
+      font-size: .875rem; margin-bottom: 1rem; display: none;
+    }
+    .alert.show { display: block; animation: fadeSlide .2s ease both; }
+    .alert-error   { background:#fee2e2; color:var(--red);        border:1px solid #fca5a5; }
+    .alert-success { background:#dcfce7; color:var(--green-dark); border:1px solid #86efac; }
+  </style>
+</head>
+<body>
+
+<!-- animated background -->
+<div class="bg"></div>
+<div class="leaves">
+  <span class="leaf">🌿</span>
+  <span class="leaf">🍃</span>
+  <span class="leaf">🌾</span>
+  <span class="leaf">🍃</span>
+  <span class="leaf">🌿</span>
+  <span class="leaf">🌾</span>
+  <span class="leaf">🍃</span>
+  <span class="leaf">🌿</span>
+</div>
+
+<div class="card">
+  <div class="logo">
+    <div class="icon">🌾</div>
+    <h1>Farm Management</h1>
+    <p>Manage your farm from one place</p>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="showTab('login')">Sign In</div>
+    <div class="tab"        onclick="showTab('register')">Register</div>
+  </div>
+
+  <!-- LOGIN -->
+  <div class="panel active" id="panel-login">
+    <div class="alert alert-error"   id="login-error"></div>
+    <div class="alert alert-success" id="login-success"></div>
+
+    <form id="login-form" onsubmit="doLogin(event)">
+      <div class="form-group">
+        <label for="l-email">Email</label>
+        <input id="l-email" type="email" placeholder="you@example.com" required autofocus />
+      </div>
+      <div class="form-group">
+        <label for="l-password">Password</label>
+        <input id="l-password" type="password" placeholder="••••••••" required />
+      </div>
+      <button class="btn" id="login-btn" type="submit">Sign In</button>
+    </form>
+
+    <button class="btn-admin" onclick="window.location.href='admin-login.html'">
+      🔒 Admin Login
+    </button>
+  </div>
+
+  <!-- REGISTER -->
+  <div class="panel" id="panel-register">
+    <div class="alert alert-error"   id="reg-error"></div>
+    <div class="alert alert-success" id="reg-success"></div>
+
+    <form id="reg-form" onsubmit="doRegister(event)">
+      <div class="form-group">
+        <label for="r-name">Full Name</label>
+        <input id="r-name" type="text" placeholder="John Doe" required />
+      </div>
+      <div class="form-group">
+        <label for="r-email">Email</label>
+        <input id="r-email" type="email" placeholder="you@example.com" required />
+      </div>
+      <div class="form-group">
+        <label for="r-password">Password</label>
+        <input id="r-password" type="password" placeholder="At least 8 characters" minlength="8" required />
+      </div>
+      <div class="form-group">
+        <label for="r-role">Role</label>
+        <select id="r-role">
+          <option value="Farmer">Farmer</option>
+          <option value="Manager">Manager</option>
+        </select>
+      </div>
+      <button class="btn" id="reg-btn" type="submit">Create Account</button>
+    </form>
+
+    <button class="btn-admin" onclick="window.location.href='admin-login.html'">
+      🔒 Admin Login
+    </button>
+  </div>
+</div>
+
+<script>
+  const API = 'http://localhost:5226/api';
+
+  function showTab(name) {
+    document.querySelectorAll('.tab').forEach((t, i) => {
+      t.classList.toggle('active', (i === 0 && name === 'login') || (i === 1 && name === 'register'));
+    });
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('panel-' + name).classList.add('active');
+  }
+
+  function showMsg(id, msg, type) {
+    const el = document.getElementById(id);
+    el.textContent = msg;
+    el.className = 'alert alert-' + type + ' show';
+  }
+  function hideMsg(id) { document.getElementById(id).classList.remove('show'); }
+
+  async function doLogin(e) {
+    e.preventDefault();
+    hideMsg('login-error'); hideMsg('login-success');
+    const btn = document.getElementById('login-btn');
+    btn.disabled = true; btn.textContent = 'Signing in…';
+
+    try {
+      const res  = await fetch(`${API}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email:    document.getElementById('l-email').value,
+          password: document.getElementById('l-password').value
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Login failed');
+
+      localStorage.setItem('farm_token', data.token);
+      localStorage.setItem('farm_email', data.email);
+      localStorage.setItem('farm_role',  data.role);
+
+      showMsg('login-success', 'Welcome back! Redirecting…', 'success');
+      setTimeout(() => window.location.href = 'dashboard.html', 1000);
+    } catch (err) {
+      showMsg('login-error', err.message, 'error');
+    } finally {
+      btn.disabled = false; btn.textContent = 'Sign In';
+    }
+  }
+
+  async function doRegister(e) {
+    e.preventDefault();
+    hideMsg('reg-error'); hideMsg('reg-success');
+    const btn = document.getElementById('reg-btn');
+    btn.disabled = true; btn.textContent = 'Creating account…';
+
+    try {
+      const res  = await fetch(`${API}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fullName: document.getElementById('r-name').value,
+          email:    document.getElementById('r-email').value,
+          password: document.getElementById('r-password').value,
+          role:     document.getElementById('r-role').value
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Registration failed');
+
+      showMsg('reg-success', 'Account created! You can now sign in.', 'success');
+      document.getElementById('reg-form').reset();
+      setTimeout(() => showTab('login'), 1800);
+    } catch (err) {
+      showMsg('reg-error', err.message, 'error');
+    } finally {
+      btn.disabled = false; btn.textContent = 'Create Account';
+    }
+  }
+
+  if (localStorage.getItem('farm_token')) {
+    window.location.href = 'dashboard.html';
+  }
+</script>
+</body>
+</html>
